@@ -415,3 +415,113 @@ HashMap, Hashtable, ConcurrentHashMap 클래스 모두 Map의 기능적으로만
 https://devlog-wjdrbs96.tistory.com/269
 
 
+## 쓰레드 로컬
+
+### 쓰레드 로컬 생성
+다음은 ThreadLocal 을 생성하는 간단한 예제이다.
+```java=
+private ThreadLocal myThreadLocal = new ThreadLocal();
+```
+새로운 ThreadLocal객체를 생성했다. 이 코드는 오직 한 쓰레드 당 한 번의 실행을 허용하여, 다수의 쓰레드에 의한 실행에도 각 쓰레드는 자신들 각자의 ThreadLocal인스턴스를 가지게 된다. 두 쓰레드가 각자의 변수를 ThreadLocal객체에 세팅했다면, 쓰레드들은 서로 다른 ThreadLocal변수값을 가지게 되며, 오직 자신의 변수만 볼 수 있게 된다.
+
+### 쓰레드 로컬 다루기
+쓰레드로컬을 생성하면 다음과 같은 방법으로 쓰레드로컬에 값을 저장할 수 있다.
+```java=
+myThreadLocal.set("A thread local value");
+```
+다음으로 쓰레들로컬의 값을 읽는 방법은 다음과 같다.
+```java=
+String ThreadLocalValue = (String) myThreadLocal.get();
+```
+get() 메소드는 Object 타입 객체를 반환하고, set()메소드 역시 Object 타입을 파라미터로 받는다.
+
+### 쓰레드 로컬 제네릭
+쓰레드로컬은 변수 타입을 다루기 쉽도록, 제네릭으로 생성 가능하다.
+```java=
+private ThreadLocal mythreadLocal = new ThreadLocal<String>();
+
+myThreadLocal.set("hello threadLocal");
+String threadLocalValue = myThreadLocal.get();
+```
+
+### 쓰레드 로컬 변후 초기화
+쓰레드로컬 객체에 세팅한 값은 오직 값을 세팅한 쓰레드만 접근할 수 있기 때문에, 모든 쓰레드가 사용할 수 있는 쓰레드로컬 초기값(디폴트)는 없다. 대신, 쓰레드로컬을 서브클래싱하고 initialValue()메소드를 오버라이딩하는 방법으로 쓰레드로컬의 초기값을 설정할 수 있다.
+
+
+## 리플랙션
+
+### 리플랙션 사용 설정
+
+Method와 같은 reflection 클래스는 java.lang.reflect에 있다. 이 클래스를 사용하려면 세 단계를 거쳐야 한다. 첫 번째 단계는 조작하려는 java.lang.Class 클래스에 대한 객체를 얻는 것이다. java.lang.Class는 실행 중인 Java 프로그램에서 클래스와 인터페이스를 나타내는 데 사용된다.
+
+Class 객체를 얻는 방법은 다음과 같다.
+```java=
+Class c = Class.forName("java.lang.String"); //String 에 대한 Class 객체를 가져온다. 
+```
+
+
+또 다른 접근 방식은 기본 유형에 대한 클래스 정보를 얻기 위해 다음을 사용하는 것이다. 
+```java=
+Class c = int.class; 또는 Class c = Integer.TYPE;  
+```
+
+
+후자의 접근 방식은 원시 타입에 대한 TYPE래퍼(예: Integer)의 미리 정의된 필드에 엑세스한다.
+
+두 번째 단계는 getDeclaredMethods와 같은 메서드를 호출하여 클래스에서 선언한 모든 메서드의 목록을 가져오는 것이다.
+
+이 정보가 있으면 세 번째 단계는 리플렉션 API를 사용하여 정보를 조작하는 것이다. 예를 들면 다음과 같은 시퀀스가 ​​있다.
+
+
+```java=
+Class c = Class.forName("java.lang.String");
+
+Method m[] = c.getDeclaredMethods();
+
+System.out.println(m[0].toString()); //String에 선언된 첫 번째 메서드의 toString()을 출력한다.
+```
+### instanceOf와 비슷한 isInstance
+instanceOf 는 객체가 어떤 클래스인지, 어떤 클래스를 상속받았는지 확인할 수 있는 연산자이다.
+리플랙션을 이용해서 다음과 같이 사용할 수 있다.
+Object.isInstance(Object);
+
+### 클래스의 메소드 찾기
+getDeclatedMethods를 이용해서 Method객체의 리스트를 가져올 수 있다.
+getMethods를 사용하면 상속받은 Method들도 가져올 수 있다.
+
+### 함수를 함수 이름으로 호출하기
+아래와 같이 add함수를 reflection을 통해 호출할 수 있다.
+getMethod함수는 메소드 이름과 매개변수 타입이 일치하는 함수가 있는지 execution time에 찾아서 invoke하게 된다.
+```java=
+import java.lang.reflect.*;
+         
+public class method2 {
+      public int add(int a, int b)
+      {
+         return a + b;
+      }
+         
+      public static void main(String args[])
+      {
+         try {
+           Class cls = Class.forName("method2");
+           Class partypes[] = new Class[2];
+            partypes[0] = Integer.TYPE;
+            partypes[1] = Integer.TYPE;
+            Method meth = cls.getMethod(
+              "add", partypes);
+            method2 methobj = new method2();
+            Object arglist[] = new Object[2];
+            arglist[0] = new Integer(37);
+            arglist[1] = new Integer(47);
+            Object retobj
+              = meth.invoke(methobj, arglist);
+            Integer retval = (Integer)retobj;
+            System.out.println(retval.intValue());
+         }
+         catch (Throwable e) {
+            System.err.println(e);
+         }
+      }
+}
+```
